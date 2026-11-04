@@ -4,11 +4,11 @@ An analysis of repeat purchasing using the [UCI Online Retail II dataset](https:
 
 ## Current work
 
-The [data inspection notebook](notebook/01_data_inspection.ipynb) combines both years of transactions, documents purchase-cleaning rules, creates one row per invoice, and compares six historical customer cohorts. The [baseline notebook](notebook/02_customer_baseline.ipynb) builds customer features at each cutoff and evaluates a recency-only ranking on the later September 2011 cohort. A trained prediction model and decision-support dashboard are planned next.
+The [data inspection notebook](notebook/01_data_inspection.ipynb) combines both years of transactions, documents purchase-cleaning rules, creates one row per invoice, and compares six historical customer cohorts. The [baseline notebook](notebook/02_customer_baseline.ipynb) builds customer features at each cutoff, evaluates a recency-only ranking, and compares it with a logistic regression model on the later September 2011 cohort. A decision-support dashboard is planned next.
 
 The cleaned data has 805,549 purchase line items, 36,969 orders, and 5,878 identified customers. At the June 1, 2011 cutoff, 1,331 of 2,659 eligible customers bought again within 90 days. These are descriptive results, not model performance or evidence that an outreach campaign would work.
 
-On the September 2011 test cohort, 39.3% did not return within 90 days. Ranking by days since last order achieved ROC AUC 0.658; among the 20% with the longest gaps, 61.8% did not return. This is a baseline for comparison with a trained model, not an estimate of outreach benefit. Some customers appear in both earlier and later snapshots; the test is a later time period, not a new-customer test.
+On the September 2011 test cohort, 39.3% did not return within 90 days. Ranking by days since last order achieved ROC AUC 0.658 and average precision 0.545. A logistic regression model using recency, order count, spend, and average order value achieved ROC AUC 0.727 and average precision 0.582. In each method's highest-risk 20%, 61.8% did not return. The model improves overall ranking, but it does not improve this particular top-20% measure. These scores do not estimate outreach benefit. Some customers appear in both earlier and later snapshots; the test is a later time period, not a new-customer test.
 
 ## Run the notebook
 
