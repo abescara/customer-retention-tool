@@ -10,6 +10,7 @@ from sklearn.metrics import average_precision_score, roc_auc_score
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import FunctionTransformer, StandardScaler
 
+from evaluation import capacity_comparison, select_priority
 from retention import CUTOFFS, FEATURE_COLUMNS, build_cohort, load_orders
 
 
@@ -42,7 +43,6 @@ model = make_pipeline(
 )
 model.fit(train[FEATURE_COLUMNS], train["did_not_return_90d"])
 test["model_risk"] = model.predict_proba(test[FEATURE_COLUMNS])[:, 1]
-test["recency_rank"] = test["days_since_last_order"].rank(pct=True)
 
 st.info(
     "This is a replay of the September 2011 test period. The 90-day outcomes are "
@@ -50,9 +50,8 @@ st.info(
 )
 share = st.slider("Share of customers to review", min_value=5, max_value=50, value=20, step=5)
 method = st.radio("Ranking method", ["Trained model", "Recency only"], horizontal=True)
-score = "model_risk" if method == "Trained model" else "recency_rank"
-count = int(np.ceil(len(test) * share / 100))
-priority = test.nlargest(count, score).copy()
+score = "model_risk" if method == "Trained model" else "days_since_last_order"
+priority = select_priority(test, score, share)
 
 left, middle, right = st.columns(3)
 left.metric("Eligible customers", f"{len(test):,}")
@@ -68,11 +67,22 @@ comparison = pd.DataFrame({
 })
 st.dataframe(comparison.style.format({"ROC AUC": "{:.3f}", "Average precision": "{:.3f}"}), hide_index=True)
 
+st.subheader("What different review capacities find")
+st.write("Nonreturner capture is the share of all customers who did not return that appear on the review list. Results are historical test outcomes, not estimated campaign gains.")
+capacity = capacity_comparison(test)
+st.dataframe(capacity.style.format({"Selected nonreturn share": "{:.1%}", "Nonreturner capture": "{:.1%}"}), hide_index=True)
+
 st.subheader("Customers for review")
-st.write("Review recent order history and spend before deciding whether a customer warrants outreach. A high score is a risk estimate, not proof an offer will change their behavior.")
-visible = priority[["Customer ID", "days_since_last_order", "order_count_180d", "spend_180d", "average_order_value", score]].copy()
-visible = visible.rename(columns={score: "ranking_score"})
-st.dataframe(visible.style.format({"spend_180d": "{:,.2f}", "average_order_value": "{:,.2f}", "ranking_score": "{:.3f}"}), hide_index=True)
+st.write("Review recent order history and spend before deciding whether a customer warrants outreach. The trained-model score estimates historical nonreturn risk; the recency score is simply days since the last order. Neither proves an offer will change behavior.")
+visible = priority[["Customer ID", "days_since_last_order", "order_count_180d", "spend_180d", "average_order_value"]].copy()
+visible["Customer ID"] = visible["Customer ID"].astype(int)
+visible["ranking_score"] = priority[score]
+visible.insert(1, "review_reason", visible.apply(
+    lambda row: f"Days since last order: {int(row['days_since_last_order'])}; orders in 180 days: {int(row['order_count_180d'])}",
+    axis=1,
+))
+score_format = "{:.3f}" if method == "Trained model" else "{:.0f}"
+st.dataframe(visible.style.format({"spend_180d": "{:,.2f}", "average_order_value": "{:,.2f}", "ranking_score": score_format}), hide_index=True)
 st.download_button("Download review list", visible.to_csv(index=False).encode("utf-8"), "customer_review_list.csv", "text/csv")
 
-st.caption("Limits: this historical data has no campaign assignments or contact outcomes. The model does not measure outreach benefit; customers can recur across training snapshots and the later test cohort.")
+st.caption("Limits: this historical data has no campaign assignments or contact outcomes. The model does not measure outreach benefit; customers can recur across training snapshots and the later test cohort. Customer ID is a pseudonymous dataset identifier; do not treat this export as a contact list.")

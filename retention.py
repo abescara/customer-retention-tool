@@ -17,8 +17,8 @@ CUTOFFS = pd.to_datetime([
 ])
 
 
-def load_orders(path: str | Path) -> pd.DataFrame:
-    """Keep identifiable, positive, uncancelled purchases and sum invoice lines."""
+def load_transactions(path: str | Path) -> pd.DataFrame:
+    """Read both workbook sheets into one transaction table."""
     workbook = pd.ExcelFile(path)
     transactions = pd.concat(
         [pd.read_excel(workbook, sheet_name=name) for name in workbook.sheet_names],
@@ -27,6 +27,11 @@ def load_orders(path: str | Path) -> pd.DataFrame:
     transactions["InvoiceDate"] = pd.to_datetime(
         transactions["InvoiceDate"], errors="coerce"
     )
+    return transactions
+
+
+def clean_purchases(transactions: pd.DataFrame) -> pd.DataFrame:
+    """Keep identifiable, positive, uncancelled purchase lines."""
     purchases = transactions.loc[
         transactions["Customer ID"].notna()
         & transactions["InvoiceDate"].notna()
@@ -35,10 +40,20 @@ def load_orders(path: str | Path) -> pd.DataFrame:
         & (transactions["Price"] > 0)
     ].copy()
     purchases["line_revenue"] = purchases["Quantity"] * purchases["Price"]
+    return purchases
+
+
+def make_orders(purchases: pd.DataFrame) -> pd.DataFrame:
+    """Sum product lines into one row per customer invoice."""
     return purchases.groupby(["Customer ID", "Invoice"], as_index=False).agg(
         order_date=("InvoiceDate", "min"),
         order_value=("line_revenue", "sum"),
     )
+
+
+def load_orders(path: str | Path) -> pd.DataFrame:
+    """Load and clean the workbook, then create invoice-level orders."""
+    return make_orders(clean_purchases(load_transactions(path)))
 
 
 def build_cohort(orders: pd.DataFrame, cutoff: str | pd.Timestamp) -> pd.DataFrame:
