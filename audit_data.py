@@ -2,23 +2,19 @@
 
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
-from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score
-from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import FunctionTransformer, StandardScaler
 
-from retention import CUTOFFS, FEATURE_COLUMNS, build_cohort, clean_purchases, load_transactions, make_orders
+from modeling import fit_risk_model, nonreturn_risk
+from retention import CUTOFFS, build_cohort, clean_purchases, load_transactions, make_orders
 
 
 def later_auc(orders: pd.DataFrame) -> float:
     snapshots = pd.concat([build_cohort(orders, date) for date in CUTOFFS])
     train = snapshots[snapshots["cutoff"] < CUTOFFS[-1]]
     test = snapshots[snapshots["cutoff"] == CUTOFFS[-1]]
-    model = make_pipeline(FunctionTransformer(np.log1p), StandardScaler(), LogisticRegression(max_iter=1000, random_state=42))
-    model.fit(train[FEATURE_COLUMNS], train["did_not_return_90d"])
-    return roc_auc_score(test["did_not_return_90d"], model.predict_proba(test[FEATURE_COLUMNS])[:, 1])
+    model = fit_risk_model(train)
+    return roc_auc_score(test["did_not_return_90d"], nonreturn_risk(model, test))
 
 
 def main() -> None:

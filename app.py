@@ -2,16 +2,13 @@
 
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 import streamlit as st
-from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import average_precision_score, roc_auc_score
-from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import FunctionTransformer, StandardScaler
 
 from evaluation import capacity_comparison, select_priority
-from retention import CUTOFFS, FEATURE_COLUMNS, build_cohort, load_orders
+from modeling import fit_risk_model, nonreturn_risk
+from retention import CUTOFFS, build_cohort, load_orders
 
 
 st.set_page_config(page_title="Customer Retention Tool", layout="wide")
@@ -36,13 +33,8 @@ snapshots = get_snapshots(str(source), source.stat().st_mtime)
 train = snapshots[snapshots["cutoff"] < CUTOFFS[-1]]
 test = snapshots[snapshots["cutoff"] == CUTOFFS[-1]].copy()
 
-model = make_pipeline(
-    FunctionTransformer(np.log1p),
-    StandardScaler(),
-    LogisticRegression(max_iter=1000, random_state=42),
-)
-model.fit(train[FEATURE_COLUMNS], train["did_not_return_90d"])
-test["model_risk"] = model.predict_proba(test[FEATURE_COLUMNS])[:, 1]
+model = fit_risk_model(train)
+test["model_risk"] = nonreturn_risk(model, test)
 
 st.info(
     "This is a replay of the September 2011 test period. The 90-day outcomes are "
