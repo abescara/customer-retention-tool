@@ -2,7 +2,7 @@
 
 An analysis of repeat purchasing using the [UCI Online Retail II dataset](https://archive.ics.uci.edu/dataset/502/online+retail+ii). The project asks: among customers who bought in the previous 180 days, which ones buy again in the next 90 days?
 
-## Current work
+## What is in the project
 
 The [data inspection notebook](notebook/01_data_inspection.ipynb) combines both years of transactions, documents purchase-cleaning rules, creates one row per invoice, and compares six historical customer cohorts. The [baseline notebook](notebook/02_customer_baseline.ipynb) builds customer features at each cutoff, evaluates a recency-only ranking, and compares it with a logistic regression model on the later September 2011 cohort. The [dashboard](app.py) replays that later cohort, compares rankings, and exports a review list. The shared [data preparation module](retention.py) applies the notebook's cleaning and cohort rules.
 
@@ -34,7 +34,7 @@ The [data quality audit](docs/data_audit.md) found 26,124 exact duplicate valid 
 4. Start the dashboard with `.\.venv\Scripts\python.exe -m streamlit run app.py`. The first load reads both Excel sheets and can take several minutes. Select the share of customers to review and a ranking method; use **Download review list** for the displayed customers.
 5. To study the analysis, open either notebook in VS Code, select the `.venv` Python kernel, and run cells from top to bottom.
 
-Run `python audit_data.py` for the data-quality sensitivity check and `python -m unittest discover -s tests` for the review-list calculation checks. Use the virtual environment's Python if it is not activated.
+Run `.\.venv\Scripts\python.exe audit_data.py` for the data-quality sensitivity check, `.\.venv\Scripts\python.exe temporal_validation.py` for successive later-period comparisons, and `.\.venv\Scripts\python.exe -m unittest discover -s tests` for the purchase, cohort, ranking, and training-window checks. See the [evaluation guide](docs/evaluation_guide.md) before interpreting the scores.
 
 The dashboard is a historical replay using the September 1, 2011 cutoff. It does not fetch current customers or predict live outcomes. The review list contains customer IDs, purchase-history measures, and ranking scores; it omits the observed outcome column. Scores support prioritization, not automatic offers or claims of campaign impact.
 
