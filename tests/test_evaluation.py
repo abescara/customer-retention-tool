@@ -4,7 +4,7 @@ import unittest
 
 import pandas as pd
 
-from evaluation import capacity_comparison, ranking_overlap, select_priority
+from evaluation import calibration_summary, capacity_comparison, ranking_overlap, select_priority
 
 
 class EvaluationTests(unittest.TestCase):
@@ -36,6 +36,25 @@ class EvaluationTests(unittest.TestCase):
             "recency_only_nonreturners": 1,
             "model_only_nonreturners": 2,
         })
+
+    def test_calibration_compares_risks_with_actual_outcomes(self):
+        customers = pd.DataFrame({
+            "Customer ID": [1, 2, 3, 4],
+            "model_risk": [0.10, 0.15, 0.80, 1.0],
+            "did_not_return_90d": [0, 1, 1, 1],
+        })
+        summary = calibration_summary(customers)
+        self.assertEqual(summary["customers"].tolist(), [2, 2])
+        self.assertAlmostEqual(summary.iloc[0]["average_predicted_risk"], .125)
+        self.assertAlmostEqual(summary.iloc[0]["observed_nonreturn_share"], .5)
+        self.assertAlmostEqual(summary.iloc[1]["observed_nonreturn_share"], 1)
+
+    def test_calibration_rejects_invalid_probabilities(self):
+        customers = pd.DataFrame({
+            "Customer ID": [1], "model_risk": [1.2], "did_not_return_90d": [1]
+        })
+        with self.assertRaises(ValueError):
+            calibration_summary(customers)
 
 
 if __name__ == "__main__":

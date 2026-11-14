@@ -4,9 +4,9 @@ from pathlib import Path
 
 import pandas as pd
 import streamlit as st
-from sklearn.metrics import average_precision_score, roc_auc_score
+from sklearn.metrics import average_precision_score, brier_score_loss, roc_auc_score
 
-from evaluation import capacity_comparison, ranking_overlap, select_priority
+from evaluation import calibration_summary, capacity_comparison, ranking_overlap, select_priority
 from modeling import eligible_training_snapshots, fit_risk_model, nonreturn_risk
 from retention import CUTOFFS, build_cohort, load_orders
 
@@ -74,6 +74,17 @@ st.write(
     f"{overlap['recency_only_nonreturners']:,} historical nonreturners. "
     "These are observed outcomes, not customers saved by outreach."
 )
+
+st.subheader("Are the model risk percentages reliable?")
+st.write(
+    "Predicted risk is compared with the observed nonreturn share in each risk band. "
+    "A gap means the percentages should be interpreted cautiously, even if the ranking is useful."
+)
+st.caption(f"Brier score: {brier_score_loss(actual, test['model_risk']):.3f} (lower is better; 0 is perfect).")
+st.dataframe(calibration_summary(test).style.format({
+    "average_predicted_risk": "{:.1%}",
+    "observed_nonreturn_share": "{:.1%}",
+}), hide_index=True)
 
 st.subheader("Customers for review")
 st.write("Review recent order history and spend before deciding whether a customer warrants outreach. The trained-model score estimates historical nonreturn risk; the recency score is simply days since the last order. Neither proves an offer will change behavior.")

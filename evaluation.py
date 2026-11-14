@@ -45,3 +45,19 @@ def ranking_overlap(customers: pd.DataFrame, share: int) -> dict[str, int]:
         "recency_only_nonreturners": int(recency_only["did_not_return_90d"].sum()),
         "model_only_nonreturners": int(model_only["did_not_return_90d"].sum()),
     }
+
+
+def calibration_summary(customers: pd.DataFrame) -> pd.DataFrame:
+    """Compare predicted nonreturn risk with observed rates in 20-point bands."""
+    risk = customers["model_risk"]
+    if risk.isna().any() or not risk.between(0, 1).all():
+        raise ValueError("Model risk must contain probabilities between 0 and 1.")
+    bands = np.minimum((risk * 5).astype(int), 4)
+    labelled = customers.assign(risk_band=bands.map(
+        {i: f"{i * 20}–{(i + 1) * 20}%" for i in range(5)}
+    ))
+    return labelled.groupby("risk_band", sort=True, observed=True).agg(
+        customers=("Customer ID", "size"),
+        average_predicted_risk=("model_risk", "mean"),
+        observed_nonreturn_share=("did_not_return_90d", "mean"),
+    ).reset_index()

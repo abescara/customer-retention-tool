@@ -13,6 +13,8 @@ Download the original `online_retail_II.xlsx` workbook from the [UCI dataset pag
 - **Average precision:** A ranking summary that depends on the cohort's nonreturn share; compare methods within the same test cutoff.
 - **Top-20% nonreturn share:** Among the highest-risk fifth of eligible customers, the observed fraction who did not return. This describes a fixed review capacity.
 
+The dashboard also groups model scores into 20-percentage-point bands. Compare each band's average predicted risk with its observed nonreturn share to judge whether the displayed probabilities are credible. The Brier score summarizes probability error, where lower is better. Neither metric by itself proves campaign impact.
+
 The **recency-only** score is days since the last order. The **trained model** uses recency, order count, spend, and average order value from the prior 180 days. Both are evaluated on identical customers for a given cutoff. Model training uses only historical snapshots with known outcomes, while each test cutoff is scored from its own preceding purchase history.
 
 ## Limits on conclusions
