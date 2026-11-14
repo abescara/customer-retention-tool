@@ -4,7 +4,7 @@ import unittest
 
 import pandas as pd
 
-from evaluation import capacity_comparison, select_priority
+from evaluation import capacity_comparison, ranking_overlap, select_priority
 
 
 class EvaluationTests(unittest.TestCase):
@@ -26,6 +26,16 @@ class EvaluationTests(unittest.TestCase):
         self.assertEqual(model["Customers reviewed"], 2)
         self.assertEqual(model["Nonreturners found"], 2)
         self.assertAlmostEqual(model["Nonreturner capture"], 2 / 3)
+
+    def test_overlap_explains_distinct_review_lists(self):
+        overlap = ranking_overlap(self.customers, 40)
+        self.assertEqual(overlap, {
+            "shared_customers": 0,
+            "recency_only_customers": 2,
+            "model_only_customers": 2,
+            "recency_only_nonreturners": 1,
+            "model_only_nonreturners": 2,
+        })
 
 
 if __name__ == "__main__":

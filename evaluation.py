@@ -29,3 +29,19 @@ def capacity_comparison(customers: pd.DataFrame, shares=(10, 20, 30)) -> pd.Data
                 "Nonreturner capture": nonreturn / total_nonreturn,
             })
     return pd.DataFrame(rows)
+
+
+def ranking_overlap(customers: pd.DataFrame, share: int) -> dict[str, int]:
+    """Count review-list agreement and nonreturners unique to each method."""
+    recency = select_priority(customers, "days_since_last_order", share).set_index("Customer ID")
+    model = select_priority(customers, "model_risk", share).set_index("Customer ID")
+    common = recency.index.intersection(model.index)
+    recency_only = recency.loc[recency.index.difference(common)]
+    model_only = model.loc[model.index.difference(common)]
+    return {
+        "shared_customers": len(common),
+        "recency_only_customers": len(recency_only),
+        "model_only_customers": len(model_only),
+        "recency_only_nonreturners": int(recency_only["did_not_return_90d"].sum()),
+        "model_only_nonreturners": int(model_only["did_not_return_90d"].sum()),
+    }

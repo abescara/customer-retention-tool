@@ -6,7 +6,7 @@ import pandas as pd
 import streamlit as st
 from sklearn.metrics import average_precision_score, roc_auc_score
 
-from evaluation import capacity_comparison, select_priority
+from evaluation import capacity_comparison, ranking_overlap, select_priority
 from modeling import eligible_training_snapshots, fit_risk_model, nonreturn_risk
 from retention import CUTOFFS, build_cohort, load_orders
 
@@ -63,6 +63,17 @@ st.subheader("What different review capacities find")
 st.write("Nonreturner capture is the share of all customers who did not return that appear on the review list. Results are historical test outcomes, not estimated campaign gains.")
 capacity = capacity_comparison(test)
 st.dataframe(capacity.style.format({"Selected nonreturn share": "{:.1%}", "Nonreturner capture": "{:.1%}"}), hide_index=True)
+
+st.subheader("How the selected lists differ")
+overlap = ranking_overlap(test, share)
+st.write(
+    f"At {share}% review capacity, both methods select {overlap['shared_customers']:,} of the same customers. "
+    f"The model selects {overlap['model_only_customers']:,} others, including "
+    f"{overlap['model_only_nonreturners']:,} historical nonreturners; recency selects "
+    f"{overlap['recency_only_customers']:,} others, including "
+    f"{overlap['recency_only_nonreturners']:,} historical nonreturners. "
+    "These are observed outcomes, not customers saved by outreach."
+)
 
 st.subheader("Customers for review")
 st.write("Review recent order history and spend before deciding whether a customer warrants outreach. The trained-model score estimates historical nonreturn risk; the recency score is simply days since the last order. Neither proves an offer will change behavior.")
