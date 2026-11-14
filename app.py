@@ -7,7 +7,7 @@ import streamlit as st
 from sklearn.metrics import average_precision_score, roc_auc_score
 
 from evaluation import capacity_comparison, select_priority
-from modeling import fit_risk_model, nonreturn_risk
+from modeling import eligible_training_snapshots, fit_risk_model, nonreturn_risk
 from retention import CUTOFFS, build_cohort, load_orders
 
 
@@ -30,7 +30,7 @@ def get_snapshots(path: str, modified: float) -> pd.DataFrame:
 
 
 snapshots = get_snapshots(str(source), source.stat().st_mtime)
-train = snapshots[snapshots["cutoff"] < CUTOFFS[-1]]
+train = eligible_training_snapshots(snapshots, CUTOFFS[-1])
 test = snapshots[snapshots["cutoff"] == CUTOFFS[-1]].copy()
 
 model = fit_risk_model(train)

@@ -6,7 +6,7 @@ import pandas as pd
 from sklearn.metrics import average_precision_score, roc_auc_score
 
 from evaluation import select_priority
-from modeling import fit_risk_model, nonreturn_risk
+from modeling import eligible_training_snapshots, fit_risk_model, nonreturn_risk
 from retention import CUTOFFS, build_cohort, load_orders
 
 
@@ -14,7 +14,7 @@ def evaluate_snapshots(snapshots: pd.DataFrame) -> pd.DataFrame:
     """Train only where the entire 90-day label window predates the test cutoff."""
     rows = []
     for cutoff in sorted(snapshots["cutoff"].unique()):
-        train = snapshots.loc[snapshots["cutoff"] + pd.Timedelta(days=90) <= cutoff]
+        train = eligible_training_snapshots(snapshots, cutoff)
         test = snapshots.loc[snapshots["cutoff"] == cutoff].copy()
         if train.empty or test.empty or train["did_not_return_90d"].nunique() < 2 or test["did_not_return_90d"].nunique() < 2:
             continue

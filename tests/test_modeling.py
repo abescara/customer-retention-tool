@@ -5,10 +5,19 @@ import unittest
 import numpy as np
 import pandas as pd
 
-from modeling import fit_risk_model, nonreturn_risk
+from modeling import eligible_training_snapshots, fit_risk_model, nonreturn_risk
 
 
 class ModelingTests(unittest.TestCase):
+    def test_training_excludes_unfinished_outcome_windows(self):
+        snapshots = pd.DataFrame({"cutoff": pd.to_datetime([
+            "2011-03-01", "2011-06-01", "2011-08-01", "2011-09-01"
+        ])})
+        eligible = eligible_training_snapshots(snapshots, "2011-09-01")
+        self.assertEqual(eligible["cutoff"].dt.strftime("%Y-%m-%d").tolist(), [
+            "2011-03-01", "2011-06-01"
+        ])
+
     def test_risk_is_probability_and_does_not_require_outcomes_at_scoring(self):
         train = pd.DataFrame({
             "days_since_last_order": [1, 3, 10, 20, 30, 50],
